@@ -1,0 +1,103 @@
+Script started on Mon 22 Apr 2019 06:44:15 PM EDT
+mst611@ice2:~/csci28/smallsh-hw$ sh -v my_script.sh 
+#/bin/sh -v
+#
+# My test script to test my submission for sttyl.
+# It removes any previous compilations, and re-compiles
+# the program fresh.
+#
+
+#-------------------------------------
+#    compile program
+#-------------------------------------
+make clean
+rm -f *.o smsh
+make
+cc -Wall -g -c -Wall smsh.c
+cc -Wall -g -c -Wall splitline.c
+cc -Wall -g -c -Wall process.c
+cc -Wall -g -c -Wall varlib.c
+cc -Wall -g -c -Wall controlflow.c
+cc -Wall -g -c -Wall builtin.c
+cc -Wall -g -c -Wall flexstr.c
+cc -Wall -g -o smsh smsh.o splitline.o process.o varlib.o controlflow.o builtin.o flexstr.o
+
+# Run course-provided test script
+~lib215/hw/smsh/test.smsh.19
+  Testing ./smsh as of Mon Apr 22 18:44:20 EDT 2019
+-rwxr-xr-x 1 mst611 extstu 53990 Apr 22 18:44 ./smsh
+
+	* Test 1: Does the program read commands from a script? 
+		OK
+	* Test 2a: Does cd work correctly? 
+		cd works when the directory exists
+		cd: /bad.directory: No such file or directory
+OK: cd detects bad directories
+	* Test 2b: Does cd without args return to /home/m/s/mst611
+		OK: cd without an arg returns to $HOME
+	* Test 3: Does the shell do variable substitution correctly?
+		and ignore dollar signs when asked?
+		OK
+	* Test 3m: Does shell handle substring varnames?
+OK
+	* Test 4: Does the read command work correctly? 
+		OK
+	* Test 5a: Does one-level if and else work?
+		OK
+	* Test 5b: Does the if detect missing thens ?
+		OK
+	* Test 5c: Does the if command find unexpected EOFS?
+		OK
+	* Test 5d: Does the if catch missing ifs?
+		OK
+	* Test 6: Does the shell process the exit built-in correctly?
+		OK
+	* Test 7: Not Applicable
+	* Test Fa1: Does a simple for work ?
+		OK
+	* Test Fa2: Does another simple for work ?
+		OK
+	* Test Fb: Does for detect missing dos?
+		OK
+	* Test Fc: Does the for command find unexpected EOFS?
+		OK
+	* Test Fd: Does the for catch missing fors?
+		OK
+	* Test Fe: If containing for
+		OK
+	* Test Fe: for containing if
+		OK
+	* Test 8: A manual test
+		
+	Does your shell reject assignment statements of the
+	form   
+		9xyz=tuna  
+	or      x.y=fun
+	
+	 That is, assignments to names that are not legal
+	variable identifiers
+
+# Test comment-handling
+./smsh test_comments.sh > test_comments.out.smsh
+dash test_comments.sh > test_comments.out.dash
+diff test_comments.out.smsh test_comments.out.dash
+
+rm test_comments.out.smsh test_comments.out.dash
+
+if [ $? -eq 0 ]
+then
+    echo Correctly handled comments.
+else
+    echo Failed comment handling.
+fi
+Correctly handled comments.
+
+# Test variable assignment (test #8 from course-script)
+./smsh test_assign.sh
+cannot execute command: No such file or directory
+echo "Exit status is $?, expecting non-zero"
+Exit status is 1, expecting non-zero
+mst611@ice2:~/csci28/smallsh-hw$ exit
+exit
+
+Script done on Mon 22 Apr 2019 06:44:29 PM EDT

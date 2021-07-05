@@ -1,0 +1,110 @@
+Using the flexstr library     2019-04-09
+-----------------------------------------------------------------------------
+The flexstr library provides flexible arrays of chars (growable strings) and
+flexible arrays of strings.  These arrays automatically resize as you add
+more elements to them.  
+
+The growable char array is called a FLEXSTR.  The growable array of strings
+is called a FLEXLIST.
+
+Here is an example of using a FLEXSTR:
+--------------------------------------
+
+	int main()
+	{
+		FLEXSTR	s;
+		char    *str;
+
+		fs_init(&s,0);		// initialize the string
+		fs_addch(&s,'a');		// append a char
+		fs_addch(&s,'b');		// and another char
+		fs_addstr(&s, "xyz");		// and a bunch of chars
+		str = fs_getstr(&s);		// retrieve string
+		printf("string is %s", str);	// print it
+		free(str);			// it was malloc-ed
+		fs_free(&s);			// deallocate space in FLEXSTR
+	}
+
+	That is all there is to it.  The FLEXSTR will grow as you add
+	chars to it.  When you want a regular string to use with regular
+	C library functions, you call the fs_getstr method to get a copy
+	of the string from the FLEXSTR.  This copy is created using malloc,
+	so you need to free it when you are done.
+
+	The FLEXSTR allocated internal storage to handle the growable
+	array, so you need to free those buffers when you are done using
+	the FLEXSTR.
+
+	For example, you can read in an arbitrarily long line of text
+	using a FLEXSTR:
+
+	/*
+	 * read a line from a FILE * , no limit on length
+	 * stops at '\n' and returns a dynmically allocated array
+	 */
+	char *read_one_line(FILE *f)
+	{
+		FLEXSTR	s;
+		int	c;
+		char	*retval;
+
+		fs_init(&s, 0);
+		while( ( c = getc(f) ) != EOF && c != '\n' ){
+			fs_addch( &s, c );
+		}
+		retval = fs_getstr( &s );
+		fs_free( &s );
+		return retval;
+	}
+
+	int main()
+	{
+		char *input;
+
+		input = read_one_line( stdin );
+		printf("you typed in the line: %s\n", input);
+		free(input);
+	}
+
+Using a FLEXLIST
+----------------------------------------------------
+A FLEXLIST works similarly to a FLEXSTR, except the array contains copies
+of strings, not just chars.  But the idea is the array will grow as you
+add elements to the array.  When you want a regular array of strings, you
+call the fl_getlist function. It extracts the strings and returns copies
+of them in a dynamically allocated array of pointers.  The array of pointers
+has a NULL pointer to mark the end of the list.
+
+This sample code reads in words from a stream and returns an array of those
+words:
+
+	char **read_until_done(FILE *f)
+	{
+		FLEXLIST	l;
+		char		*w;
+		char		**rv;
+
+		fl_init(&l, 0);			// initialize storage
+						// read and store words
+		while( ( w = read_one_word(f) ) != NULL ){
+			fl_append( &l, w );
+			free(w);		// read_one_word returns
+						// malloc-ed strings, just
+						// like read_one_line
+			if ( strcmp(w, "done") == 0 )
+				break;
+		}
+		rv = fl_getlist(&l);		// extract the list
+		fl_free( &l );			// recycle storage
+		return rv;
+	}
+	int main()
+	{
+		char	**wordlist;
+		int	i;
+
+		wordlist = read_until_done(stdin);
+		for( i = 0 ; wordlist[i] != NULL ; i++ )
+			printf("word number %d is %s\n", i, wordlist[i]);
+		fl_freelist( wordlist );
+	}

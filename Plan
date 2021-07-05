@@ -1,0 +1,185 @@
+  Author: Matthew Thomas
+    Date: 4/22/2019
+Contains: Design details for CSCI E-215 homework 5
+==================================================
+Project: smsh
+
+Purpose: Implement a sub-set of features for a shell; a mix of built-in
+	functions, execution of other programs, control-flow, and more.
+
+Outline:
+    Given the disparate nature of the features added to the small-shell
+    written for the assignment, this Plan will tackle each kind of feature
+    separately. The high-level overview is that smsh is meant to behave like
+    dash on the nice servers. smsh adds features in the following categories:
+    	1) New built-in functions
+    	2) Shell scripts
+    	3) Variables and substitution
+    	4) Control structures
+
+Program flow:
+	A shell can be thought of as a combination of several different tools
+	and features. To implement and handle these tasks, there needs to exist
+	a main control loop that looks for input and acts on that input. This loop
+	acts in the following way:
+	   1a - Setup the shell by loading in any environment variables and
+			ignoring interupt and quit signals. The shell is how you execute
+			commands and programs. To stop it from running, you must execute
+			the 'exit' built-in function.
+	   1b - Setup also assigns the prompt the user will see at the command 
+	   		line and where input will come from. Input can be interactive
+	   		(stdin), or from a shell script specified at the command line.
+		2 - At this point, the shell runs until 'exit' is called, or 'EOF' is
+			reached. If in interactive mode, a user could also type the 'EOF'
+			control-character specified by 'stty' to quit the shell.
+	 Loop - 1) Read in a line (from stdin or file).
+	 		2) If in for-loop control, load the for-loop (execute on 'done').
+	 		3) Otherwise, run the command.
+	 		4) Read next command (back to Loop step 1).
+  Command - 1) Perform variable substitution (also remove any comments).
+  			2) Split the substituted command line into whitespace-separated
+  			   values.
+  			3) Check if the line contains the start of an if- or for-control
+  			   flow. If it does, check the syntax and update the current
+  			   state. Otherwise, check if the command is okay to execute given
+  			   the current state.
+  			4) Command execution can be either a) a built-in command; or b) an
+  			   external program.
+
+Built-in functions:
+	For this assignment, 'cd', 'exit', and 'read' were added as built-in
+	functions. The code closely follows the pattern established in existing
+	functions like 'set' and 'export'. The general method is as follows:
+		1) Check if the argument matches a built-in function. If it does,
+		   perform the given action.
+		2) To perform the action, first check that the arguments/syntax is
+		   correct. This shell, following the behaviors of 'dash', only looks
+		   at the first argument following the command for validation.
+		   For example, if
+		   		exit 11 22 33
+		   was entered, this shell would only care if '11' was a valid
+		   argument to 'exit'. See Piazza post @262 for further discussion.
+		3) After the action is completed, the exit status is stored in a
+		   pointer that is used to update the 'last_exit' variable (used for
+		   the $? special variable).
+
+Shell scripts:
+	To implement shell scripts for this assignment, initial command line
+	processing was added to main(). Similar to other 'dash' behavior, ./smsh
+	only cares if a second argument is provided to ./smsh. For example:
+				./smsh run_script.sh foobar.sh does_not_exist.sh
+	would only run the 'run_script.sh' script and ignore the other two
+	arguments (which could be files that exist or not). Then, instead of
+	retrieving input from stdin, ./smsh uses the opened file as the FILE *
+	input. The user-prompt is also disabled.
+
+Variables and variable substitution:
+	Variables and variable substitution are handled as a built-in function
+	for ./smsh, and also covers the handling of comments. To allow for special
+	control flows like for-loops, variable substitution occurs right before
+	the command line is split into whitespace-separated tokens. As will be
+	described in detail with for-loops, this is done so a line like
+				echo $name
+	within a for-loop is evaluated for each variable defined after the 'in'
+	keyword, not when the line is read in. This is helpful because the value
+	of $name could change between when it is read and execution.
+	
+	To substitute values for variable names, a varsub() function iterates
+	character-by-character over the line. It first checks if the char is the
+	beginning of a comment (signified by leading whitespace). If it is, the
+	remainder of the line is discarded. It then checks for an escape-char,
+	for ./smsh that is only the backslash '\' character. When a escape-char
+	is encountered, and there is another char, that next char is output as-is.
+	(See the 'Method' section in the function comments for more detail).
+	
+	The other special character variable substitution looks for is the '$'.
+	The function will then look for a valid variable name -- which consists of
+	alpha-numeric characters and the underscore -- or a special variable -- in
+	this shell's case, "$$" and "$?". A regular variable is looked up using
+	the varlib.c library functions (which examine the environment). The $?, or
+	last-exit special variable, calls on get_exit() to access the exit status
+	of the last command or program. The $$ special variable is the current
+	process ID, obtained using getpid().
+
+Control structures:
+	For the ./smsh assignment, 'else' control was added to if/then/fi. To
+	incorporate these changes, minimal logic was required to match the new
+	"else" keyword, and add an ELSE_BLOCK state. "Elses" are optional, so
+	they need not be included. When they are, ok_to_execute() will return
+	true when ELSE_BLOCK is the current state and the if_result was FAIL.
+	
+	To implement for loops, a for_loop struct was necessary. It contains
+	three main pieces: 1) a variable name; 2) variable values; and 3) the
+	commands to be run. Just like the if-control program flow, a for-loop
+	starts off the same way. However, when the start of a for-loop is
+	detected, with the "for" keyword, control is changed in main() to so
+	that all commands can be read in before execution.
+	
+	When "for" is detected, the correct syntax will feature a variable name,
+	followed by "in", followed by 0 or more values. On execution, these values
+	will replace the variable name in each command. Since the number of
+	variables and number of commands are unknown, it is important to store
+	them in a flexible data structure. For ./smsh, the starter code included
+	the flexstr.c library which includes flexible string and flexible list
+	data structures. The variable name is stored in a FLEXSTR and the values
+	and commands are stored in separate FLEXLISTs. To grow the FLEXLIST is as
+	simple as calling fl_append() to add to a char ** representation.
+	
+	On execution, flow is handled with an execute_for() function that loads
+	the variable name, all variable values, and all commands. For each
+	variable value, it is assigned to the variable name, with VLstore(). Flow
+	then passes to a loop over each command. When done, the commands are reset
+	and the next variable value is assigned to the variable name.
+
+Error handling:
+	The shell is mostly responsible for handling syntax errors, which occur
+	during the built-in functions, or processing of control-flow commands.
+	As man page standards dictate, a syntax error will have an exit status of
+	2. The helper function syn_err() in controlflow.c returns -1 on error (or
+	fatal when in SCRIPTED mode), not 2. Later, in the run_command() function
+	of ./smsh, if the result was -1 it is changed to a status of 2 and stored
+	as the last_exit value.
+    
+Command output substitution:
+	To implement command output substitution, the two key features that need
+	to be designed are detecting the syntax and obtaining the result. First,
+	to detect the syntax, the change would best be done in the varsub()
+	function in builtin.c. As written, varsub() iterates over each char of
+	the command line to detect comments, escape-characters, and regular
+	variable substitution with $varname, with several if/else conditions.
+	To detect command output substitution, another else if condition would be
+	added, possibly under the condition testing for (c == '$'). Ignoring
+	special quoting (back-ticks, single and double quotes) syntax within
+	the $(command) syntax, and assuming for this implementation anything
+	within the parentheses is read as a command to execute, pseudo-code
+	might look something like:
+	        if ( c == '$' and next_c == '(' )
+	            command_str = read_in_command(args);
+	
+	The other key feature needed for an implementation is obtaining the
+	output of that command. This can be accomplished using pipes, in
+	particular popen(). A call to popen() takes a command -- obtained with
+	a method like that described above -- and a mode (either 'r' for read
+	or 'w' for write). For use in this shell, a 'read' mode would be best
+	suited to the application. The general idea would be to call popen(),
+	which returns a FILE *, and then treat it as any other file you can
+	read from, like it was plain text. In pseudo-code it might look
+	something like:
+	        FILE * fp = popen(command, 'r') <-- command read in from varsub
+	        char data[]
+	        
+	        while(data to read from 'fp')
+	            data = read_data() (potentially fgets() or fgetc())
+	        
+	        //check for errors and proper data here
+	        
+	        return data
+	        
+	The 'data' that is returned would then be replaced back in the string
+	being assembled in varsub() to then be interpreted as an argument for
+	further processing.
+	
+	
+	
+	
+	

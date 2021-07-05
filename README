@@ -1,0 +1,41 @@
+README for smsh
+
+  Student: Matthew Thomas
+  Date: 4/22/2019
+
+Summary:
+
+This submission contains the files:
+         Makefile -- The Makefile
+           README -- This file
+             Plan -- Design document for this assignment
+     my_script.sh -- My sample test script, to compile smsh
+ test_comments.sh -- Helper script for my_script.sh testing
+   test_assign.sh -- Helper script for my_script.sh testing
+       typescript -- Run of my_script to show program compiles with no errors
+           smsh.c -- Core shell logic to read/parse/execute commands
+           smsh.h -- Header file for smsh.c
+        builtin.c -- Switch among a list of built-in shell functions
+        builtin.h -- Header file for builtin.c
+    controlflow.c -- Handles control flow for if/then/else/fi and for loops
+    controlflow.h -- Header file for controlflow.c
+        flexstr.c -- Unmodified from starter code (handles flexible data)
+         flextr.h -- Unmodified from starter code (handles flexible data)
+    flexstr.howto -- Unmodified from starter code (documentation)
+        process.c -- Handles layers of processing
+        process.h -- Header file for process.c
+      splitline.c -- Unmodified from starter code (command read and parse)
+      splitline.h -- Unmodified from starter code (command read and parse)
+         varlib.c -- Unmodified from starter code (store name=value pairs)
+         varlib.h -- Unmodified from starter code (store name=value pairs)
+
+Notes:
+    A few files were taken from the sample code for this assignment, and
+    untouched by me. These are noted above in this README file. Several other
+    files were also copied from the sample code provided that contain
+    modifications and additions to existing and new functions. All changes 
+    and additions were made by me.
+    
+    I wrote my code using a combination of BBEdit on the Mac, and server-side
+    editing using Emacs. Indentation is 4-space wide tabs. Before submission,
+    I ran the Emacs command 'M-x untabify' to convert tabs to spaces.
